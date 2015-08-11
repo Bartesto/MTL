@@ -6,6 +6,7 @@ library(R.utils)
 dir = "Z:\\DOCUMENTATION\\BART\\R\\R_DEV\\MTL"
 imdir = "W:\\usgs\\109071"
 setwd(imdir)
+setwd(dir)
 pr = 10971
 zone = 51
 #sensor = "l5"
@@ -22,34 +23,42 @@ matches <- matches == 2
 
 # First pass result1 and folds1 is all valid .pre files
 result1 <- allfiles[matches]
-
 folds1 <- substr(result1, 1, 8)
 
 ## Loop to untar and extract MTL.txt 
 ## only needs to be done on new data
-start <- Sys.time()
+## takes approx 30s per folder
+## will skip folders where MTL already exists
+
+
 for (i in 1:length(result1)){
         setwd(paste0(imdir, "\\", folds1[i]))
         zp.file <- list.files(".", pattern = ".tar.gz")
         mtl.name <- paste0(str_split(zp.file, pattern = "\\.")[[1]][1], "_MTL.txt")
-        untar(zp.file,files=mtl.name)
+        if (!file.exists(mtl.name)){untar(zp.file,files=mtl.name)}
+        
 }
 
-total <- Sys.time()-start
 
 ## Loop to find out what level of correction applied to scene
 
+
 L1T <- logical()#empty logical vector
+
 for (i in 1:length(result1)){
+       
         setwd(paste0(imdir, "\\", folds1[i]))
-        mtl.file <- list.files(".", pattern = "MTL.txt")
+        #To obtain correct MTL name incase of others
+        zp.file <- list.files(".", pattern = ".tar.gz")
+        mtl.name <- paste0(str_split(zp.file, pattern = "\\.")[[1]][1], "_MTL.txt")
         
-        text <- scan(mtl.file, character(0), sep = "\n")
+        text <- scan(mtl.name, character(0), sep = "\n")
         ind <- grepl("_TYPE = \"L", text)#handles product or data_type
         level <- str_split(text[ind], "\"")[[1]][2]
         L1T[i] <- level == "L1T"
         
 }
+
 
 # Second pass result2 and folds2 are all valid .pre files and "L1T" files
 result2 <- result1[L1T]
